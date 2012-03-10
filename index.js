@@ -5,7 +5,7 @@
 		, fs = require('fs')
 		, path = require('path')
 		, exec = require('child_process').exec
-		, bundleMaker = __dirname + "/lib/make_bundle"
+		, bundleMaker = __dirname + "/bin/make_bundle"
 		, debugMode = process.env.NODE_ENV == "development" ? true : false
 		, EventEmitter = require('events').EventEmitter
 		, bundler = Object.create(EventEmitter.prototype)
@@ -15,7 +15,7 @@
 
 		if(!(bundleBox) || (bundleBox.length<1)){
 
-			cb(new Error("bundle-bee::box() Invalid bundle parameters"));
+			cb(new Error("Invalid bundle parameters"));
 			return;
 		}		
 
@@ -25,9 +25,45 @@
 
 			if((bundle.index) && (bundle.output)){
 
+				try{
+
+
+					var 
+						index = path.resolve(bundle.index)
+						, output = path.resolve(bundle.output)
+						, indexStat = fs.statSync(path.resolve(index))
+						, outputStat = fs.statSync(path.dirname(output))
+						, error = null;
+					;
+				}
+				catch(e){
+
+					error = e.toString();
+				}
+
+				if(!indexStat.isFile() && !error){
+
+					error = "Bundle index is not a file.";
+				}
+
+				else if(!outputStat.isDirectory() && !error){
+
+					error = "Bundle output is not a directory.";
+				}
+
+				if(error){
+
+					bundle.error = error;
+					bundler.emit("bundle::error", bundle);
+
+					return;
+				}
+
+				bundle.index = index;
+				bundle.output = output;
 				createBundle(title, bundle);
 
-				// if watch is true, or we're in dev mode & not explicitly told not to...
+				// if watch is true, or we're in dev mode & no one explicitly told us not to...
 				if(bundle.watch == true || 
 					((process.env.NODE_ENV == "development") && 
 						(bundle.watch != false))){
@@ -56,19 +92,40 @@
 		].join(" ");
 
 		exec(command, function(err, stdout, stderr){
-			
-			if(err){
 
-				bundler.emit("bundle::failed", bundle);
-				return;
+			var status = "success";
+
+			if(err){ 
+
+				stats = "failed"; 
+				bundle.error = err; 
 			}
 
-			bundler.emit("bundle::success", bundle);
+			bundler.emit("bundle::" + status, bundle);
 		});
 		
 	}
 
 	var watchSource = function(bundleName, bundle){
+
+		var 
+			watchDir = path.dirname(bundle.index)
+			, error = false
+		;
+
+		try{
+
+			if(!fs.statSync(watchDir).isDirectory()){
+
+				error = true;
+			}
+		}
+		catch(e){
+
+			error = true;
+		}
+
+		if(error) { bundler.emit("watch::error", bundle); return; }
 
 		fs.watch(path.dirname(bundle.index), function(event, filename) {
 

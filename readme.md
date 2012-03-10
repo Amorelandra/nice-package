@@ -7,7 +7,7 @@
 
  * easily configure multiple source files to bundle
 
- * emits bundle events (start, success, failed)
+ * emits bundle events (success, failed)
 
  * emits source events (change, rename)
 
@@ -36,13 +36,13 @@
 
 			// do stuff here
 		});
-		bundler.on("bundle::failed", function(pack){
+		bundle.on("bundle::failed", function(pack){
 
 			// do other stuff
 		});
 
 ### dependencies:
 
- * browserify
- * optimist
- * uglify-js
+ * [browserify](https://github.com/substack/node-browserify)
+ * [optimist](https://github.com/substack/node-optimist)
+ * [uglify-js](https://github.com/mishoo/UglifyJS)
