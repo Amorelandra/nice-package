@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+
+;(function(){
+	
+	var
+		fs = require('fs')
+		, path = require('path')
+		, browserify = require('browserify')
+		, argv = require('optimist').argv
+		, index = path.resolve(argv.index) || undefined
+		, output = path.resolve(argv.output) || undefined
+		, outputDir = path.dirname(output)
+	;
+
+	try{
+
+		if(!fs.statSync(index).isFile()){
+
+			process.stderr.write(["Error:", index, "is not a file."].join(" "));
+			process.exit(1);
+		}
+		if(!fs.statSync(outputDir).isDirectory()){
+
+			process.stderr.write(["Error:", index, "is not a directory."].join(" "));
+			process.exit(2);
+		}
+	}
+	catch(e){
+
+		process.stderr.write(e.toString());
+		process.exit(3);
+	}
+
+	var opts = { require : index };
+	if (argv.uglify){ opts.filter = require('uglify-js') };
+	var bundle = browserify(opts);
+	bundle.addEntry(index);
+	var out = bundle.bundle();
+
+	fs.createWriteStream(output, {
+
+	    flags: "w"
+	    , encoding: "utf8"
+	    , mode: 0600
+
+	}).write(out);
+
+	process.stdout.write(output + " OK");
+})()
