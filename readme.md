@@ -1,5 +1,7 @@
 ### fanciful features:
 
+ * supports uploading bundles to asset servers via rsync
+
  * bundling occurs in separate processes to avoid blocking the app
 
  * watches for source changes & re-bundles (optional)
@@ -62,7 +64,7 @@
 
 			// do something about the failure
 		});
-		
+
 		bundler.on("rsync::stdout", function(stdout){
 
 			// do stuff w/ stdout
@@ -74,11 +76,36 @@
 		});				
 
 ***
+### note:
+
+rsync support requires manual ssh key configuration as of now. e.g.
+
+ * on your development box; `cd ~/.ssh` (create and `chmod 700` if it doesn't exist)
+ * generate a new ssh key (security first, kids!); `ssh-keygen -t rsa -f asset_key`
+ * copy the contents of `asset_key.pub` to `~/.ssh/authorized_keys` on the asset server
+ * create an entry in `~/.ssh/config` on your development box with the following;
+
+ 		Host <hosts nickname>
+ 			User <your username>
+ 			HostName <your server's host>
+ 			IdentityFile ~/.ssh/asset_key.pub
+ * edit your options hash to point to the appropriate asset server
+
+ 		{
+			rsync : {
+				resource : "<your username>@<host's nickname>:<asset directory>"
+				, options : "-caqz --delete" // or whatever you prefer
+				, directory : __dirname + '/../public/js/' // source of bundles
+		}
+ * confidently sync your assets with poise and grace
+
+***
 ### dependencies:
 
  * [browserify](https://github.com/substack/node-browserify)
  * [optimist](https://github.com/substack/node-optimist)
  * [uglify-js](https://github.com/mishoo/UglifyJS)
+ * [async](https://github.com/caolan/async)
 
 ***
 ### mega thanks:
