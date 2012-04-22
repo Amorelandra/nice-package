@@ -34,15 +34,44 @@
 				, watch : true
 
 			}
+		}, {
+			rsync : {
+
+				resource : "emily@sunset:/var/www/"
+				, options : "-caqz --delete"
+				, directory : __dirname + '/../public/js/'
+			}
 		});
+
 		bundle.on("bundle::success", function(pack){
 
-			// do stuff here
+			// huzzah~!1
 		});
+
 		bundle.on("bundle::failed", function(pack){
 
-			// do other stuff
+			// not so huzzah.
 		});
+
+		bundler.on("rsync::success", function(info){
+
+			// do something about the success
+		});
+
+		bundler.on("rsync::failed", function(info){
+
+			// do something about the failure
+		});
+		
+		bundler.on("rsync::stdout", function(stdout){
+
+			// do stuff w/ stdout
+		});
+
+		bundler.on("rsync::stderr", function(stderr){
+
+			// do stuff w/ stderr
+		});				
 
 ***
 ### dependencies:

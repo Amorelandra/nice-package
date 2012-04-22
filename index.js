@@ -4,20 +4,23 @@
 		watchList = {}
 		, fs = require('fs')
 		, path = require('path')
+		, async = require('async')
 		, exec = require('child_process').exec
-		, bundleMaker = __dirname + "/bin/make_bundle"
+		, spawn = require('child_process').spawn
+		, bundleMaker = path.resolve(__dirname + "/bin/make_bundle")
 		, debugMode = process.env.NODE_ENV == "development" ? true : false
 		, EventEmitter = require('events').EventEmitter
 		, bundler = Object.create(EventEmitter.prototype)
+		, bundleList = []
 	;
 
-	var box = function box(bundleBox, cb){
+	var box = function box(bundleBox, options){
 
 		if(!(bundleBox) || (bundleBox.length<1)){
 
 			cb(new Error("Invalid bundle parameters"));
 			return;
-		}		
+		}	
 
 		for(var title in bundleBox){
 
@@ -61,7 +64,9 @@
 
 				bundle.index = index;
 				bundle.output = output;
-				createBundle(title, bundle);
+
+				bundleList.push(createBundler(title, bundle));
+
 
 				// if watch is true, or we're in dev mode & no one explicitly told us not to...
 				if(bundle.watch == true || 
@@ -73,37 +78,54 @@
 			}		
 		}
 
+		async.parallel(bundleList, function(err, res){
+
+			if(err){
+
+				bundler.emit("bundle::error", err);
+				return;
+			}
+
+			boxComplete(res, options);
+		});
+
 		if(typeof cb === "function") { cb(null); } // this just means we processed things properly, errors may happen.
 
 		return bundler;
 	}
 
-	var createBundle = function(bundleName, bundle){
+	var createBundler = function(bundleName, bundle){
 
-		var command = [
+		return function(cb){
 
-			bundleMaker
-			, "--index"
-			, bundle.index
-			, "--output"
-			, bundle.output
-			, bundle.uglify ? "--uglify" : ""
+			var command = [
 
-		].join(" ");
+				bundleMaker
+				, "--index"
+				, bundle.index
+				, "--output"
+				, bundle.output
+				, bundle.uglify ? "--uglify" : ""
 
-		exec(command, function(err, stdout, stderr){
+			].join(" ");
 
-			var status = "success";
+			exec(command, function(err, stdout, stderr){
 
-			if(err){ 
+				var 
+					status = "success"
+				;
 
-				stats = "failed"; 
-				bundle.error = err; 
-			}
+				if(err){ 
 
-			bundler.emit("bundle::" + status, bundle);
-		});
-		
+					status = "failed";
+					bundle.error = err; 
+				}
+
+				bundler.emit("bundle::" + status, bundle);
+
+				if(typeof cb === "function"){ cb(err ? err : null, bundle.output || undefined); }
+			});
+		}
 	}
 
 	var watchSource = function(bundleName, bundle){
@@ -151,6 +173,40 @@
 				}, 500); 
 			}
 		});	
+	}
+
+	var boxComplete = function(res, options){
+
+
+		if((options) && options.rsync){
+
+			if(!options.rsync.directory){ 
+
+				bundler.emit("rsync::failed", new Error("No rsync directory")); 
+				return; 
+			}
+
+			var 
+				resource = options.rsync.resource
+				, args = options.rsync.options
+				, directory = path.resolve(options.rsync.directory)
+				, command = ["rsync", args, directory, resource].join(" ")
+				// , inc = function(f){ return "--include=" + f; }
+				// , files = res.map(function(f){ return inc(f); }).join(" ")
+			;
+
+			exec(command, function(err, stdout, stderr){
+
+				if(stdout){ bundler.emit("rsync::stdout", stdout); }
+				if(stderr){ bundler.emit("rsync::stderr", stderr); }
+
+				bundler.emit("rsync::" + err ? "failed" : "success", res);
+			});		
+		}
+		else{
+
+			bundler.emit("rsync::failed", new Error("Invalid options object provided"));
+		}
 	}
 
 	module.exports = box;

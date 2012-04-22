@@ -2,7 +2,7 @@
   "name": "nice-package"
   , "description": "Simple async client-side resource bundling for Node.js"
   , "author": "Emily Rose <emily@contactvibe.com>"
-  , "version" : "0.0.2"
+  , "version" : "0.0.4"
   , "main" : "index.js"
   , "keywords" : [ 
   		"bundle"
@@ -21,6 +21,7 @@
     "browserify" : "1.4.x"  
     , "uglify-js" : "1.1.x"
     , "optimist" : "0.3.x"
+    , "async" : "0.1.x"
   }
   , "engine": "node >= 0.4.0"
 }
