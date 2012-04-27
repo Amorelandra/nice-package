@@ -44,27 +44,24 @@
 					error = e.toString();
 				}
 
-				if(!indexStat.isFile() && !error){
+				if((!indexStat) || !indexStat.isFile() && !error){
 
 					error = "Bundle index is not a file.";
 				}
 
-				else if(!outputStat.isDirectory() && !error){
+				else if((!outputStat) || (!outputStat.isDirectory() && !error)){
 
 					error = "Bundle output is not a directory.";
-				}
-
-				if(error){
-
-					bundle.error = error;
-					bundler.emit("bundle::error", bundle);
-
-					return;
 				}
 
 				bundle.index = index;
 				bundle.output = output;
 
+				if(error){
+
+					bundle.error = error;
+				}
+				
 				bundleList.push(createBundler(title, bundle));
 
 
@@ -83,7 +80,6 @@
 			if(err){
 
 				bundler.emit("bundle::error", err);
-				return;
 			}
 
 			boxComplete(res, options);
@@ -202,10 +198,6 @@
 
 				bundler.emit("rsync::" + err ? "failed" : "success", res);
 			});		
-		}
-		else{
-
-			bundler.emit("rsync::failed", new Error("Invalid options object provided"));
 		}
 	}
 
