@@ -11,6 +11,7 @@
 		, debugMode = process.env.NODE_ENV == "development" ? true : false
 		, EventEmitter = require('events').EventEmitter
 		, bundler = Object.create(EventEmitter.prototype)
+		, bundleOptions = {}
 		, bundleList = []
 	;
 
@@ -21,6 +22,13 @@
 			cb(new Error("Invalid bundle parameters"));
 			return;
 		}	
+
+		if(options){ 
+
+			// TODO: parse options moar.
+
+			bundleOptions = options 
+		}
 
 		for(var title in bundleBox){
 
@@ -162,7 +170,7 @@
 				// timeout to prevent mass bundling on git actions
 				watchList[bundleName] = setTimeout(function(){ 
 
-					createBundle(bundleName, bundle);
+					boxComplete(createBundler(bundleName, bundle), bundleOptions);
 					clearTimeout(watchList[bundleName]);
 					watchList[bundleName] = undefined;
 
