@@ -78,10 +78,12 @@
 					((process.env.NODE_ENV == "development") && 
 						(bundle.watch != false))){
 
-					watchSource(title, bundle);
+					bundleList.push(watchSource(title, bundle));
 				}
 			}		
 		}
+
+		bundler.emit('bundle::success', { index : bundleList });
 
 		async.parallel(bundleList, function(err, res){
 
@@ -134,53 +136,58 @@
 
 	var watchSource = function(bundleName, bundle){
 
-		var 
-			watchDir = path.dirname(bundle.index)
-			, error = false
-		;
+		return function(cb){
 
-		try{
+			var 
+				watchDir = path.dirname(bundle.index)
+				, error = false
+			;
 
-			if(!fs.statSync(watchDir).isDirectory()){
+			try{
+
+				if(!fs.statSync(watchDir).isDirectory()){
+
+					error = true;
+				}
+			}
+			catch(e){
 
 				error = true;
 			}
+
+			if(error) { bundler.emit("watch::error", bundle); return; }
+
+			fs.watch(path.dirname(bundle.index), function(event, filename) {
+
+
+				if((event) && (filename)){
+
+					bundler.emit("source::" + event, {
+
+						bundleName : bundleName
+						, bundleOptions : bundle
+						, sourceFile : filename
+
+					});
+
+					if(watchList[bundleName]){ clearTimeout(watchList[bundleName]); }
+
+					// timeout to prevent mass bundling on git actions
+					watchList[bundleName] = setTimeout(function(){ 
+
+						boxComplete(createBundler(bundleName, bundle)(), bundleOptions);
+						clearTimeout(watchList[bundleName]);
+						watchList[bundleName] = undefined;
+
+					}, 500); 
+				}
+			});	
+
+			cb(error);
 		}
-		catch(e){
-
-			error = true;
-		}
-
-		if(error) { bundler.emit("watch::error", bundle); return; }
-
-		fs.watch(path.dirname(bundle.index), function(event, filename) {
-
-			if((event) && (filename)){
-
-				bundler.emit("source::" + event, {
-
-					bundleName : bundleName
-					, bundleOptions : bundle
-					, sourceFile : filename
-
-				});
-
-				if(watchList[bundleName]){ clearTimeout(watchList[bundleName]); }
-
-				// timeout to prevent mass bundling on git actions
-				watchList[bundleName] = setTimeout(function(){ 
-
-					boxComplete(createBundler(bundleName, bundle), bundleOptions);
-					clearTimeout(watchList[bundleName]);
-					watchList[bundleName] = undefined;
-
-				}, 500); 
-			}
-		});	
 	}
 
 	var boxComplete = function(res, options){
-
 
 		if((options) && options.rsync){
 

@@ -2,7 +2,7 @@
   "name": "nice-package"
   , "description": "Simple async client-side resource bundling for Node.js"
   , "author": "Emily Rose <emily@contactvibe.com>"
-  , "version" : "0.0.5"
+  , "version" : "0.0.6"
   , "main" : "index.js"
   , "keywords" : [ 
   		"bundle"
